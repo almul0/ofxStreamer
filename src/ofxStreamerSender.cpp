@@ -34,7 +34,7 @@ void ofxStreamerSender::setup(int _width, int _height, string destination_ip, in
     
     //Create scale context for converting from rgb to yuv
     imgctx = sws_getContext(width, height, AV_PIX_FMT_RGB24,
-                            width, height, PIX_FMT_YUV420P,
+                            width, height, AV_PIX_FMT_YUV420P,
                             SWS_FAST_BILINEAR, NULL, NULL, NULL);
     
     
@@ -73,7 +73,7 @@ void ofxStreamerSender::setup(int _width, int _height, string destination_ip, in
     
     //Lower value creates lower delay, and lower quality
     int mGopSize = 60;
-    
+
     // initalize codec
     mCodecContext = stream->codec;
     mCodecContext->codec_id = mCodec->id;
@@ -85,6 +85,7 @@ void ofxStreamerSender::setup(int _width, int _height, string destination_ip, in
     mCodecContext->max_b_frames  = 4;
     mCodecContext->thread_count  = 4;
     mCodecContext->thread_type   = FF_THREAD_SLICE;
+    mCodecContext->time_base = (AVRational){1,30};
 
 
     if (mFormatContext->oformat->flags & AVFMT_GLOBALHEADER)
@@ -119,21 +120,21 @@ void ofxStreamerSender::setup(int _width, int _height, string destination_ip, in
     avcodec_open2(mCodecContext, mCodec, NULL);
 
     // write the header
-    int error = avformat_write_header(mFormatContext, nil);
+    int error = avformat_write_header(mFormatContext, NULL);
     if(error < 0){
         cout<<"Error avformat_write_header "<<error<<endl;
     }
     
     streaming = true;
     
-    frame = avcodec_alloc_frame();
+    frame = av_frame_alloc();
     frame->pts = 0;
     frame->quality = 1;
     
-    int num_bytes = avpicture_get_size(PIX_FMT_YUV420P, width, height);
+    int num_bytes = avpicture_get_size(AV_PIX_FMT_YUV420P, width, height);
     frameBuf = (uint8_t*)malloc(num_bytes);
 
-    avpicture_fill((AVPicture*)frame, frameBuf,PIX_FMT_YUV420P, width, height);
+    avpicture_fill((AVPicture*)frame, frameBuf,AV_PIX_FMT_YUV420P, width, height);
 }
 
 
@@ -162,7 +163,7 @@ bool ofxStreamerSender::sendFrame(unsigned char *data, int data_length){
         p.size = 0;
         
         int got_packet;
-        
+
         int err = avcodec_encode_video2(stream->codec, &p, frame, &got_packet);
         if (err < 0) {
             cout<<"Could not encode frame"<<endl;
@@ -207,7 +208,7 @@ bool ofxStreamerSender::sendFrame(unsigned char *data, int data_length){
 void ofxStreamerSender::close(){
     if(streaming){
         delete frameBuf;
-        avcodec_free_frame(&frame);
+        av_frame_free(&frame);
         avcodec_close(mCodecContext);
         
         avio_close(mFormatContext->pb);

@@ -25,6 +25,8 @@ extern "C"
 #include <libswscale/swscale.h>
 }
 
+
+
 class ofxStreamerReceiver : public ofBaseVideoDraws, ofThread {
     
 public:

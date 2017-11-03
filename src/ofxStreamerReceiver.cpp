@@ -22,7 +22,7 @@ bool ofxStreamerReceiver::setup(int _port, string _host) {
     url = host + ":" + ofToString(port);
     ofLog(OF_LOG_NOTICE, "Opening stream at " + url);
     
-    startThread(false,false);
+    startThread();
 
     lastFrame = new ofImage();
     lastFrame->allocate(1, 1, OF_IMAGE_COLOR);
@@ -100,15 +100,15 @@ void ofxStreamerReceiver::threadedFunction(){
     height = mVideoDecodeContext->height;
     
     img_convert_ctx = sws_getContext(width, height, mVideoDecodeContext->pix_fmt, width, height,
-                                     PIX_FMT_RGB24, SWS_BICUBIC, NULL, NULL, NULL);
+                                     AV_PIX_FMT_RGB24, SWS_BICUBIC, NULL, NULL, NULL);
     
 
 
     
-    picrgb = avcodec_alloc_frame();
-    int size2 = avpicture_get_size(PIX_FMT_RGB24, width, height);
+    picrgb = av_frame_alloc();
+    int size2 = avpicture_get_size(AV_PIX_FMT_RGB24, width, height);
     picture_buf2 = (uint8_t*)(av_malloc(size2));
-    avpicture_fill((AVPicture *) picrgb, picture_buf2, PIX_FMT_RGB24, width, height);
+    avpicture_fill((AVPicture *) picrgb, picture_buf2, AV_PIX_FMT_RGB24, width, height);
 
     
     
@@ -126,7 +126,7 @@ void ofxStreamerReceiver::threadedFunction(){
                 
                 // decode video frame
                 int got_frame = 0;
-                mFrame = avcodec_alloc_frame();
+                mFrame = av_frame_alloc();
                 int decodeResult = avcodec_decode_video2(mVideoDecodeContext, mFrame, &got_frame, &pkt);
                 if(decodeResult > 0 && got_frame == 1) {
                     setConnected(true);
@@ -146,7 +146,7 @@ void ofxStreamerReceiver::threadedFunction(){
                 
                 
                 av_free_packet(&pkt);
-                avcodec_free_frame(&mFrame);
+                av_frame_free(&mFrame);
             }
         } else {
             setConnected(false);
@@ -159,7 +159,7 @@ void ofxStreamerReceiver::threadedFunction(){
 
 void ofxStreamerReceiver::update() {
     bHavePixelsChanged = false;
-    if(open && mutex.tryLock()){
+    if(open && mutex.try_lock()){
         if(newFrame){
             if(!allocated){
                 lastFrame = new ofImage();
@@ -242,7 +242,7 @@ void ofxStreamerReceiver::close() {
         free(pixelData);
     }
     
-    avcodec_free_frame(&mFrame);
+    av_frame_free(&mFrame);
     av_free(picrgb);
     av_free(picture_buf2);
     av_free(picture_buf);
@@ -277,7 +277,7 @@ ofTexture & ofxStreamerReceiver::getTexture(){
     }
 }
 
-const ofTexture & ofxStreamerReceiver::getTexture() const {
+const ofTexture & ofxStreamerReceiver::getTexture() const{
     if(allocated){
         return lastFrame->getTexture();
     }

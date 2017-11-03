@@ -8,10 +8,12 @@
 
 #pragma once
 
+#include "ofMain.h"
+
 #include <stdio.h>
 #include <stdint.h>
 #include <unistd.h>
-#include <vector.h>
+#include <vector>
 
 extern "C" {
 #include <x264.h>
@@ -20,7 +22,7 @@ extern "C" {
 #include  <libavutil/opt.h>
 }
 
-#include "ofMain.h"
+
 
 class ofxStreamerSender {
     
@@ -68,6 +70,7 @@ private:
     
     AVCodec *mCodec;
     AVCodecContext *mCodecContext;
+    AVCodecParameters *mCodecPar;
 
     x264_picture_t picture_in;
     x264_picture_t * picture_out;
